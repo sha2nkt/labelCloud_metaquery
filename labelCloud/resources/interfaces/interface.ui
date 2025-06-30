@@ -862,8 +862,14 @@
         </property>
         <property name="minimumSize">
          <size>
-          <width>230</width>
+          <width>200</width>
           <height>0</height>
+         </size>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>200</width>
+          <height>16777215</height>
          </size>
         </property>
         <property name="frameShape">
@@ -896,10 +902,22 @@
           <item>
               <widget class="QComboBox" name="current_class_dropdown">
                   <property name="sizePolicy">
-                      <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                      <sizepolicy hsizetype="Ignored" vsizetype="Fixed">
                           <horstretch>0</horstretch>
                           <verstretch>0</verstretch>
                       </sizepolicy>
+                  </property>
+                  <property name="minimumSize">
+                      <size>
+                          <width>150</width>
+                          <height>0</height>
+                      </size>
+                  </property>
+                  <property name="maximumSize">
+                      <size>
+                          <width>180</width>
+                          <height>16777215</height>
+                      </size>
                   </property>
               </widget>
           </item>
