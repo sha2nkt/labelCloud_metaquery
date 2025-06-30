@@ -78,7 +78,7 @@ class ClassList(QWidget):
 
         label_id = QSpinBox()
         label_id.setMinimum(0)
-        label_id.setMaximum(255)
+        label_id.setMaximum(10000)
         label_id.setValue(id)
         row_label.addWidget(label_id)
 
