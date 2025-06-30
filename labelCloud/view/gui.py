@@ -115,7 +115,7 @@ STYLESHEET = """
 
 
 class GUI(QtWidgets.QMainWindow):
-    def __init__(self, control: "Controller") -> None:
+    def __init__(self, control: "Controller", skip_welcome: bool = False) -> None:
         super(GUI, self).__init__()
         uic.loadUi(
             pkg_resources.resource_filename(
@@ -248,12 +248,13 @@ class GUI(QtWidgets.QMainWindow):
         self.connect_events()
         self.set_checkbox_states()  # tick in menu
 
-        # Run startup dialog
-        self.startup_dialog = StartupDialog()
-        if self.startup_dialog.exec():
-            pass
-        else:
-            sys.exit()
+        # Run startup dialog (unless skipped)
+        if not skip_welcome:
+            self.startup_dialog = StartupDialog()
+            if self.startup_dialog.exec():
+                pass
+            else:
+                sys.exit()
         # Segmentation only functionalities
         if LabelConfig().type == LabelingMode.OBJECT_DETECTION:
             self.button_assign_label.setVisible(False)

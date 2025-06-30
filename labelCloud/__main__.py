@@ -17,12 +17,17 @@ def main():
     parser.add_argument(
         "-v", "--version", action="version", version="%(prog)s " + __version__
     )
+    parser.add_argument(
+        "--no-welcome",
+        action="store_true",
+        help="Skip the welcome dialog on startup.",
+    )
     args = parser.parse_args()
 
     if args.example:
         setup_example_project()
 
-    start_gui()
+    start_gui(skip_welcome=args.no_welcome)
 
 
 def setup_example_project() -> None:
@@ -74,7 +79,7 @@ def setup_example_project() -> None:
     )
 
 
-def start_gui():
+def start_gui(skip_welcome: bool = False):
     import sys
 
     from PyQt5.QtWidgets import QApplication, QDesktopWidget
@@ -86,7 +91,7 @@ def start_gui():
 
     # Setup Model-View-Control structure
     control = Controller()
-    view = GUI(control)
+    view = GUI(control, skip_welcome=skip_welcome)
 
     # Install event filter to catch user interventions
     app.installEventFilter(view)
