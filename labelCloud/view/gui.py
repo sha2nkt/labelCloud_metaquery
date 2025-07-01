@@ -149,6 +149,23 @@ STYLESHEET = """
     QPushButton#button_next_label:pressed{{
         background-color: #003d7a;
     }}
+
+    QPushButton#button_suggest_label{{
+        background-color: #28a745;
+        color: white;
+        border: 1px solid #1e7e34;
+        border-radius: 3px;
+        padding: 5px;
+        font-weight: bold;
+    }}
+
+    QPushButton#button_suggest_label:hover{{
+        background-color: #218838;
+    }}
+
+    QPushButton#button_suggest_label:pressed{{
+        background-color: #1e7e34;
+    }}
 """
 
 
@@ -238,6 +255,7 @@ class GUI(QtWidgets.QMainWindow):
         self.top_level_object_display: QtWidgets.QTextEdit
         self.label_counter: QtWidgets.QLabel
         self.button_next_label: QtWidgets.QPushButton
+        self.button_suggest_label: QtWidgets.QPushButton
         self.button_deselect_label: QtWidgets.QPushButton
         self.button_delete_label: QtWidgets.QPushButton
         self.button_assign_label: QtWidgets.QPushButton
@@ -355,6 +373,9 @@ class GUI(QtWidgets.QMainWindow):
         )
         self.button_next_label.clicked.connect(
             self.controller.bbox_controller.next_label_class
+        )
+        self.button_suggest_label.clicked.connect(
+            self.suggest_new_label
         )
         self.button_deselect_label.clicked.connect(
             self.controller.bbox_controller.deselect_bbox
@@ -765,3 +786,56 @@ class GUI(QtWidgets.QMainWindow):
             msg.setIcon(QMessageBox.Critical)
             msg.setStandardButtons(QMessageBox.Cancel)
             msg.exec_()
+
+    def suggest_new_label(self) -> None:
+        """Open a dialog to suggest a new top-level label for the current active bbox."""
+        
+        # Check if there's an active bbox
+        current_bbox = self.controller.bbox_controller.get_active_bbox()
+        if current_bbox is None:
+            QMessageBox.warning(self, "No Active BBox", 
+                               "Please select a bounding box first before suggesting a label.")
+            return
+        
+        # Get the current top_level_object for context
+        label_config = LabelConfig()
+        current_top_level = ""
+        for class_config in label_config.classes:
+            if class_config.name == current_bbox.classname:
+                current_top_level = class_config.top_level_object or ""
+                break
+        
+        # Create input dialog
+        input_dialog = QInputDialog(self)
+        input_dialog.setWindowTitle("Suggest New Top-Level Label")
+        
+        # Show current top-level object if it exists
+        if current_top_level:
+            input_dialog.setLabelText(f"Current top-level object: '{current_top_level}'\n"
+                                     f"Enter a new suggested top-level label:")
+        else:
+            input_dialog.setLabelText(f"Enter a new suggested top-level label for class '{current_bbox.classname}':")
+        
+        input_dialog.setInputMode(QInputDialog.TextInput)
+        input_dialog.setTextValue("")  # Start with empty text
+        
+        # Show dialog and get result
+        if input_dialog.exec_() == QInputDialog.Accepted:
+            new_label = input_dialog.textValue().strip()
+            if new_label:
+                # Find the class config for the current bbox and update its new_top_level_label
+                for class_config in label_config.classes:
+                    if class_config.name == current_bbox.classname:
+                        class_config.new_top_level_label = new_label
+                        break
+                
+                # Save the updated configuration
+                label_config.save_config()
+                
+                logging.info(f"Suggested top-level label '{new_label}' added for class '{current_bbox.classname}'")
+                
+                # Update the display to reflect the change
+                self.controller.bbox_controller.update_all()
+            else:
+                QMessageBox.warning(self, "Invalid Input", 
+                                   "Please enter a valid label name.")

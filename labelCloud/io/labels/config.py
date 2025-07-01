@@ -33,6 +33,7 @@ class ClassConfig:
     id: int
     color: Color3f
     top_level_object: Optional[str] = None
+    new_top_level_label: Optional[str] = None
 
     @classmethod
     def from_dict(cls, data: dict) -> "ClassConfig":
@@ -40,7 +41,8 @@ class ClassConfig:
             name=data["name"], 
             id=data["id"], 
             color=hex_to_rgb(data["color"]),
-            top_level_object=data.get("top_level_object")
+            top_level_object=data.get("top_level_object"),
+            new_top_level_label=data.get("new_top_level_label")
         )
 
     def to_dict(self) -> dict:
@@ -51,6 +53,8 @@ class ClassConfig:
         }
         if self.top_level_object is not None:
             result["top_level_object"] = self.top_level_object
+        if self.new_top_level_label is not None:
+            result["new_top_level_label"] = self.new_top_level_label
         return result
 
 
