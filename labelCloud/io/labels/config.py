@@ -1,6 +1,7 @@
 import json
 from dataclasses import dataclass
-from typing import Dict, List, Union
+from pathlib import Path
+from typing import Dict, List, Optional, Union
 
 import numpy as np
 import numpy.typing as npt
@@ -50,14 +51,19 @@ class LabelConfig(object, metaclass=SingletonABCMeta):
         self.default: int
         self.type: LabelingMode
         self.format: BaseLabelFormat
+        self._current_config_path: Optional[Path] = None  # Track which config file is currently loaded
 
         if getattr(self, "_loaded", False) != True:
             self.load_config()
 
-    def load_config(self) -> None:
-        class_definition_path = config.getpath("FILE", "class_definitions")
+    def load_config(self, class_definition_path: Optional[Path] = None) -> None:
+        if class_definition_path is None:
+            class_definition_path = config.getpath("FILE", "class_definitions")
+            
+        self._current_config_path = class_definition_path
+        
         if class_definition_path.exists():
-            with config.getpath("FILE", "class_definitions").open("r") as stream:
+            with class_definition_path.open("r") as stream:
                 data = json.load(stream)
 
             self.classes = [ClassConfig.from_dict(c) for c in data["classes"]]
@@ -72,7 +78,27 @@ class LabelConfig(object, metaclass=SingletonABCMeta):
         self.validate()
         self._loaded = True
 
-    def save_config(self) -> None:
+    def load_config_for_pointcloud(self, pcd_path: Path) -> bool:
+        """
+        Load class definitions for a specific point cloud file.
+        Returns True if a specific config was found and loaded, False if fallback was used.
+        """
+        # Get the label folder from config
+        label_folder = config.getpath("FILE", "label_folder")
+        
+        # Construct the path for the PLY-specific class definitions
+        ply_specific_config = label_folder / f"{pcd_path.stem.replace('laser_scan', 'classes')}.json"
+        
+        if ply_specific_config.exists():
+            # Load PLY-specific class definitions
+            self.load_config(ply_specific_config)
+            return True
+        else:
+            # Fallback to default class definitions
+            self.load_config()
+            return False
+
+    def save_config(self, save_path: Optional[Path] = None) -> None:
         self.validate()
         data = {
             "classes": [c.to_dict() for c in self.classes],
@@ -81,7 +107,12 @@ class LabelConfig(object, metaclass=SingletonABCMeta):
             "format": self.format,
             "created_with": {"name": "labelCloud", "version": __version__},
         }
-        with config.getpath("FILE", "class_definitions").open("w") as stream:
+        
+        # Use the specified path, or the current config path, or fall back to default
+        if save_path is None:
+            save_path = self._current_config_path or config.getpath("FILE", "class_definitions")
+            
+        with save_path.open("w") as stream:
             json.dump(data, stream, indent=4)
 
     @property

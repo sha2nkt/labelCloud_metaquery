@@ -106,6 +106,10 @@ class PointCloudManger(object):
                 self.saved_perspective,
                 write_buffer=self.pointcloud is not None,
             )
+            
+            # Load class definitions for this specific point cloud after pointcloud is loaded
+            self.load_class_definitions_for_current_pcd()
+            
             self.update_pcd_infos()
         else:
             logging.warning("No point clouds left!")
@@ -120,6 +124,10 @@ class PointCloudManger(object):
                 self.saved_perspective,
                 write_buffer=self.pointcloud is not None,
             )
+            
+            # Load class definitions for this specific point cloud after pointcloud is loaded
+            self.load_class_definitions_for_current_pcd()
+            
             self.update_pcd_infos()
         else:
             logging.warning("This point cloud does not exists!")
@@ -132,15 +140,22 @@ class PointCloudManger(object):
             self.pointcloud = PointCloud.from_file(
                 self.pcd_path, self.saved_perspective
             )
+            
+            # Load class definitions for this specific point cloud after pointcloud is loaded
+            self.load_class_definitions_for_current_pcd()
+            
             self.update_pcd_infos()
         else:
             raise Exception("No point cloud left for loading!")
 
     def populate_class_dropdown(self) -> None:
         # Add point label list
+        if not hasattr(self.view, 'current_class_dropdown'):
+            logging.warning("View or dropdown not available, skipping class dropdown population")
+            return
+            
         self.view.current_class_dropdown.clear()
-        assert self.pointcloud is not None
-
+        
         for label_class in LabelConfig().classes:
             self.view.current_class_dropdown.addItem(label_class.name)
 
@@ -292,6 +307,26 @@ class PointCloudManger(object):
         if 30 < x_rotation < 210:
             bottom_up = -1
         return cosz, sinz, bottom_up
+
+    def load_class_definitions_for_current_pcd(self) -> None:
+        """Load class definitions specific to the current point cloud file."""
+        
+        if self.current_id >= 0:
+            pcd_specific_loaded = LabelConfig().load_config_for_pointcloud(self.pcd_path)
+            if pcd_specific_loaded:
+                logging.info(f"Loaded PLY-specific class definitions for {self.pcd_path.name}")
+            else:
+                logging.info(f"Using default class definitions for {self.pcd_path.name}")
+            
+            # Update UI if view is available and properly initialized
+            if hasattr(self, 'view') and hasattr(self.view, 'current_class_dropdown'):
+                try:
+                    self.populate_class_dropdown()
+                    # Notify other components that classes have changed
+                    if hasattr(self.view, 'controller') and hasattr(self.view.controller, 'bbox_controller'):
+                        self.view.controller.bbox_controller.update_curr_class()
+                except Exception as e:
+                    logging.warning(f"Failed to update UI after loading class definitions: {e}")
 
     # UPDATE GUI
 
