@@ -162,8 +162,11 @@ class PointCloudManger(object):
             else:
                 # Fallback: directly update display
                 first_class = LabelConfig().classes[0].name
+                first_class_config = LabelConfig().classes[0]
+                top_level_object = first_class_config.top_level_object or ""
+                acted_on_object = first_class_config.acted_on_object or ""
                 total_count = len(LabelConfig().classes)
-                self.view.update_label_display(first_class, 1, total_count)
+                self.view.update_label_display(first_class, top_level_object, 1, total_count, acted_on_object)
 
     def get_labels_from_file(self) -> List[BBox]:
         bboxes = self.label_manager.import_labels(self.pcd_path)

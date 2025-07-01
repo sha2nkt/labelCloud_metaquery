@@ -120,6 +120,17 @@ STYLESHEET = """
         color: #0066cc;
     }}
 
+    QTextEdit#acted_on_object_display{{
+        border: 1px solid #ccc;
+        border-radius: 3px;
+        padding: 5px;
+        background-color: #fff2e6;
+        font-family: DejaVu Sans, Arial;
+        font-size: 10pt;
+        font-weight: bold;
+        color: #cc6600;
+    }}
+
     QPushButton#button_next_label{{
         background-color: #0066cc;
         color: white;
@@ -253,6 +264,7 @@ class GUI(QtWidgets.QMainWindow):
         self.label_list: QtWidgets.QListWidget
         self.current_class_display: QtWidgets.QTextEdit
         self.top_level_object_display: QtWidgets.QTextEdit
+        self.acted_on_object_display: QtWidgets.QTextEdit
         self.label_counter: QtWidgets.QLabel
         self.button_next_label: QtWidgets.QPushButton
         self.button_suggest_label: QtWidgets.QPushButton
@@ -512,10 +524,12 @@ class GUI(QtWidgets.QMainWindow):
             self.update_bbox_stats(self.controller.bbox_controller.get_active_bbox())
         elif (event.type() == QEvent.MouseButtonPress) and (
             event_object != self.current_class_display and
-            event_object != self.top_level_object_display
+            event_object != self.top_level_object_display and
+            event_object != self.acted_on_object_display
         ):
             self.current_class_display.clearFocus()
             self.top_level_object_display.clearFocus()
+            self.acted_on_object_display.clearFocus()
             self.update_bbox_stats(self.controller.bbox_controller.get_active_bbox())
         return False
 
@@ -593,9 +607,9 @@ class GUI(QtWidgets.QMainWindow):
     def update_current_class_display(self) -> None:
         self.controller.pcd_manager.populate_class_dropdown()
 
-    def update_label_display(self, current_class: str, top_level_object: str, current_index: int, total_count: int) -> None:
-        """Update the current class display, top level object, and counter"""
-        print(f"DEBUG: Updating label display - class: '{current_class}', top_level_object: '{top_level_object}', index: {current_index}, total: {total_count}")
+    def update_label_display(self, current_class: str, top_level_object: str, current_index: int, total_count: int, acted_on_object: str = "") -> None:
+        """Update the current class display, top level object, acted on object, and counter"""
+        print(f"DEBUG: Updating label display - class: '{current_class}', top_level_object: '{top_level_object}', acted_on_object: '{acted_on_object}', index: {current_index}, total: {total_count}")
         
         # Try both methods to ensure the text is set
         self.current_class_display.setPlainText(current_class)
@@ -605,9 +619,14 @@ class GUI(QtWidgets.QMainWindow):
         self.top_level_object_display.setPlainText(top_level_object)
         self.top_level_object_display.setText(top_level_object)
         
+        # Update acted on object display
+        self.acted_on_object_display.setPlainText(acted_on_object)
+        self.acted_on_object_display.setText(acted_on_object)
+        
         # Also try to force a repaint
         self.current_class_display.update()
         self.top_level_object_display.update()
+        self.acted_on_object_display.update()
         
         self.label_counter.setText(f"{current_index}/{total_count}")
 

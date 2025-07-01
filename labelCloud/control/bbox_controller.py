@@ -393,6 +393,7 @@ class BoundingBoxController(object):
         
         current_class = ""
         top_level_object = ""
+        acted_on_object = ""
         
         if self.has_active_bbox():
             current_class = self.get_active_bbox().classname  # type: ignore
@@ -405,6 +406,7 @@ class BoundingBoxController(object):
                 if available_classes:
                     current_class = available_classes[0].name
                     top_level_object = available_classes[0].top_level_object or ""
+                    acted_on_object = available_classes[0].acted_on_object or ""
         else:
             print("DEBUG: No active bbox")
             # When no bbox is selected, show the current class from the cycling index
@@ -414,24 +416,27 @@ class BoundingBoxController(object):
                     self.current_label_index = 0
                 current_class = available_classes[self.current_label_index].name
                 top_level_object = available_classes[self.current_label_index].top_level_object or ""
+                acted_on_object = available_classes[self.current_label_index].acted_on_object or ""
             else:
                 current_class = ""
                 top_level_object = ""
+                acted_on_object = ""
                 self.current_label_index = 0
         
-        # If we have an active bbox, get its top_level_object
+        # If we have an active bbox, get its top_level_object and acted_on_object
         if self.has_active_bbox() and available_classes:
             # Find the class config for the current class
             for cls in available_classes:
                 if cls.name == current_class:
                     top_level_object = cls.top_level_object or ""
+                    acted_on_object = cls.acted_on_object or ""
                     break
         
         total_count = len(available_classes)
         current_index = self.current_label_index + 1 if total_count > 0 else 0
         
-        print(f"DEBUG: Final - class: '{current_class}', top_level_object: '{top_level_object}', index: {current_index}, total: {total_count}")
-        self.view.update_label_display(current_class, top_level_object, current_index, total_count)
+        print(f"DEBUG: Final - class: '{current_class}', top_level_object: '{top_level_object}', acted_on_object: '{acted_on_object}', index: {current_index}, total: {total_count}")
+        self.view.update_label_display(current_class, top_level_object, current_index, total_count, acted_on_object)
 
     def next_label_class(self) -> None:
         """Cycle to the next available label class and apply it to active bbox"""
