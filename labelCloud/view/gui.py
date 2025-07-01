@@ -352,6 +352,7 @@ class GUI(QtWidgets.QMainWindow):
         # LABELING CONTROL
         self.button_next_label.clicked.connect(
             self.controller.bbox_controller.next_label_class
+        )
         self.button_next_label.clicked.connect(
             self.controller.bbox_controller.next_label_class
         )
@@ -568,7 +569,6 @@ class GUI(QtWidgets.QMainWindow):
     def update_progress(self, value) -> None:
         self.progressbar_pcds.setValue(value)
 
-    def update_current_class_display(self) -> None:
     def update_current_class_display(self) -> None:
         self.controller.pcd_manager.populate_class_dropdown()
 
