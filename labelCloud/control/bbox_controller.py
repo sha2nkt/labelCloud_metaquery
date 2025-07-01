@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING, List, Optional
 import numpy as np
 
 from ..definitions import Mode
+from ..io.labels.config import LabelConfig
 from ..model.bbox import BBox
 from ..utils import oglhelper
 from .config_manager import config
@@ -61,6 +62,7 @@ class BoundingBoxController(object):
         self.pcd_manager: PointCloudManger
         self.bboxes: List[BBox] = []
         self.active_bbox_id = -1  # -1 means zero bboxes
+        self.current_label_index = 0  # Track current label index for cycling
 
     # GETTERS
     def has_active_bbox(self) -> bool:
@@ -76,6 +78,16 @@ class BoundingBoxController(object):
     def get_classname(self) -> str:
         return self.get_active_bbox().get_classname()  # type: ignore
 
+    def get_current_selected_class(self) -> str:
+        """Get the currently selected class name for new bboxes"""
+        available_classes = [cls.name for cls in LabelConfig().classes]
+        if available_classes and 0 <= self.current_label_index < len(available_classes):
+            return available_classes[self.current_label_index]
+        elif available_classes:
+            return available_classes[0]
+        else:
+            return LabelConfig().get_default_class_name()
+
     # SETTERS
 
     def set_view(self, view: "GUI") -> None:
@@ -83,11 +95,13 @@ class BoundingBoxController(object):
 
     def add_bbox(self, bbox: BBox) -> None:
         if isinstance(bbox, BBox):
+            # Set the bbox to use the currently selected class
+            current_class = self.get_current_selected_class()
+            bbox.set_classname(current_class)
+            
             self.bboxes.append(bbox)
             self.set_active_bbox(self.bboxes.index(bbox))
-            self.view.current_class_dropdown.setCurrentText(
-                self.get_active_bbox().classname  # type: ignore
-            )
+            self.update_current_class_display()
             self.view.status_manager.update_status(
                 "Bounding Box added, it can now be corrected.", Mode.CORRECTION
             )
@@ -123,6 +137,7 @@ class BoundingBoxController(object):
     def set_classname(self, new_class: str) -> None:
         self.get_active_bbox().set_classname(new_class)  # type: ignore
         self.update_label_list()
+        self.update_current_class_display()
 
     @has_active_bbox_decorator
     def set_center(self, cx: float, cy: float, cz: float) -> None:
@@ -362,13 +377,59 @@ class BoundingBoxController(object):
         self.view.dial_bbox_z_rotation.setValue(int(self.get_active_bbox().get_z_rotation()))  # type: ignore
         self.view.dial_bbox_z_rotation.blockSignals(False)
 
-    def update_curr_class(self) -> None:
+    def update_current_class_display(self) -> None:
+        """Update the current class display with the active bbox's class"""
+        available_classes = [cls.name for cls in LabelConfig().classes]
+        print(f"DEBUG: Available classes: {len(available_classes)}, current_label_index: {self.current_label_index}")
+        
         if self.has_active_bbox():
-            self.view.current_class_dropdown.setCurrentText(
-                self.get_active_bbox().classname  # type: ignore
-            )
+            current_class = self.get_active_bbox().classname  # type: ignore
+            print(f"DEBUG: Active bbox class: '{current_class}'")
+            # Find the index of current class in available classes
+            try:
+                self.current_label_index = available_classes.index(current_class)
+            except ValueError:
+                self.current_label_index = 0
+                current_class = available_classes[0] if available_classes else ""
         else:
-            self.view.controller.pcd_manager.populate_class_dropdown()
+            print("DEBUG: No active bbox")
+            # When no bbox is selected, show the current class from the cycling index
+            if available_classes:
+                # Ensure current_label_index is within bounds
+                if self.current_label_index >= len(available_classes):
+                    self.current_label_index = 0
+                current_class = available_classes[self.current_label_index]
+            else:
+                current_class = ""
+                self.current_label_index = 0
+        
+        total_count = len(available_classes)
+        current_index = self.current_label_index + 1 if total_count > 0 else 0
+        
+        print(f"DEBUG: Final - class: '{current_class}', index: {current_index}, total: {total_count}")
+        self.view.update_label_display(current_class, current_index, total_count)
+
+    def next_label_class(self) -> None:
+        """Cycle to the next available label class and apply it to active bbox"""
+        available_classes = [cls.name for cls in LabelConfig().classes]
+        if not available_classes:
+            return
+            
+        # Cycle to next class
+        self.current_label_index = (self.current_label_index + 1) % len(available_classes)
+        next_class = available_classes[self.current_label_index]
+        
+        # If there's an active bbox, set the new class for it
+        if self.has_active_bbox():
+            self.get_active_bbox().set_classname(next_class)  # type: ignore
+            self.update_label_list()
+        
+        # Always update display to show the current selected class
+        self.update_current_class_display()
+
+    def update_curr_class(self) -> None:
+        """Legacy method - redirect to new method"""
+        self.update_current_class_display()
 
     def update_label_list(self) -> None:
         """Updates the list of drawn labels and highlights the active label.

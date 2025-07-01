@@ -150,14 +150,20 @@ class PointCloudManger(object):
 
     def populate_class_dropdown(self) -> None:
         # Add point label list
-        if not hasattr(self.view, 'current_class_dropdown'):
-            logging.warning("View or dropdown not available, skipping class dropdown population")
+        if not hasattr(self.view, 'current_class_display'):
+            logging.warning("View or current_class_display not available, skipping class dropdown population")
             return
             
-        self.view.current_class_dropdown.clear()
-        
-        for label_class in LabelConfig().classes:
-            self.view.current_class_dropdown.addItem(label_class.name)
+        # Initialize the first class if classes are available
+        if LabelConfig().classes:
+            # Call the bbox controller to update the display properly
+            if hasattr(self.view, 'controller') and hasattr(self.view.controller, 'bbox_controller'):
+                self.view.controller.bbox_controller.update_current_class_display()
+            else:
+                # Fallback: directly update display
+                first_class = LabelConfig().classes[0].name
+                total_count = len(LabelConfig().classes)
+                self.view.update_label_display(first_class, 1, total_count)
 
     def get_labels_from_file(self) -> List[BBox]:
         bboxes = self.label_manager.import_labels(self.pcd_path)
@@ -319,12 +325,12 @@ class PointCloudManger(object):
                 logging.info(f"Using default class definitions for {self.pcd_path.name}")
             
             # Update UI if view is available and properly initialized
-            if hasattr(self, 'view') and hasattr(self.view, 'current_class_dropdown'):
+            if hasattr(self, 'view') and hasattr(self.view, 'current_class_display'):
                 try:
-                    self.populate_class_dropdown()
-                    # Notify other components that classes have changed
+                    # Reset class index to 0 when loading a new PCD
                     if hasattr(self.view, 'controller') and hasattr(self.view.controller, 'bbox_controller'):
-                        self.view.controller.bbox_controller.update_curr_class()
+                        self.view.controller.bbox_controller.reset_class_index()
+                    self.populate_class_dropdown()
                 except Exception as e:
                     logging.warning(f"Failed to update UI after loading class definitions: {e}")
 

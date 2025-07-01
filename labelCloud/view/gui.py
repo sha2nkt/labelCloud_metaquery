@@ -100,16 +100,30 @@ STYLESHEET = """
         background: url("{icons_dir}/cube-outline_white.svg") center left no-repeat, #0000ff;
     }}
 
-    QComboBox#current_class_dropdown::item:checked{{
-        color: gray;
+    QTextEdit#current_class_display{{
+        border: 1px solid #ccc;
+        border-radius: 3px;
+        padding: 5px;
+        background-color: #f9f9f9;
+        font-family: DejaVu Sans, Arial;
+        font-size: 10pt;
     }}
 
-    QComboBox#current_class_dropdown::item:selected {{
-        color: #FFFFFF;
+    QPushButton#button_next_label{{
+        background-color: #0066cc;
+        color: white;
+        border: 1px solid #0052a3;
+        border-radius: 3px;
+        padding: 5px;
+        font-weight: bold;
     }}
 
-    QComboBox#current_class_dropdown{{
-        selection-background-color: #0000FF;
+    QPushButton#button_next_label:hover{{
+        background-color: #0052a3;
+    }}
+
+    QPushButton#button_next_label:pressed{{
+        background-color: #003d7a;
     }}
 """
 
@@ -196,7 +210,9 @@ class GUI(QtWidgets.QMainWindow):
 
         # RIGHT PANEL
         self.label_list: QtWidgets.QListWidget
-        self.current_class_dropdown: QtWidgets.QComboBox
+        self.current_class_display: QtWidgets.QTextEdit
+        self.label_counter: QtWidgets.QLabel
+        self.button_next_label: QtWidgets.QPushButton
         self.button_deselect_label: QtWidgets.QPushButton
         self.button_delete_label: QtWidgets.QPushButton
         self.button_assign_label: QtWidgets.QPushButton
@@ -309,8 +325,8 @@ class GUI(QtWidgets.QMainWindow):
         )
 
         # LABELING CONTROL
-        self.current_class_dropdown.currentTextChanged.connect(
-            self.controller.bbox_controller.set_classname
+        self.button_next_label.clicked.connect(
+            self.controller.bbox_controller.next_label_class
         )
         self.button_deselect_label.clicked.connect(
             self.controller.bbox_controller.deselect_bbox
@@ -446,9 +462,9 @@ class GUI(QtWidgets.QMainWindow):
             self.controller.mouse_clicked(event)
             self.update_bbox_stats(self.controller.bbox_controller.get_active_bbox())
         elif (event.type() == QEvent.MouseButtonPress) and (
-            event_object != self.current_class_dropdown
+            event_object != self.current_class_display
         ):
-            self.current_class_dropdown.clearFocus()
+            self.current_class_display.clearFocus()
             self.update_bbox_stats(self.controller.bbox_controller.get_active_bbox())
         return False
 
@@ -523,8 +539,21 @@ class GUI(QtWidgets.QMainWindow):
     def update_progress(self, value) -> None:
         self.progressbar_pcds.setValue(value)
 
-    def update_current_class_dropdown(self) -> None:
+    def update_current_class_display(self) -> None:
         self.controller.pcd_manager.populate_class_dropdown()
+
+    def update_label_display(self, current_class: str, current_index: int, total_count: int) -> None:
+        """Update the current class display and counter"""
+        print(f"DEBUG: Updating label display - class: '{current_class}', index: {current_index}, total: {total_count}")
+        
+        # Try both methods to ensure the text is set
+        self.current_class_display.setPlainText(current_class)
+        self.current_class_display.setText(current_class)
+        
+        # Also try to force a repaint
+        self.current_class_display.update()
+        
+        self.label_counter.setText(f"{current_index}/{total_count}")
 
     def update_bbox_stats(self, bbox) -> None:
         viewing_precision = config.getint("USER_INTERFACE", "viewing_precision")

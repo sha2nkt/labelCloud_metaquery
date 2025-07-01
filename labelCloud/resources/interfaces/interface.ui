@@ -899,28 +899,107 @@
            </property>
           </widget>
          </item>
-          <item>
-              <widget class="QComboBox" name="current_class_dropdown">
-                  <property name="sizePolicy">
-                      <sizepolicy hsizetype="Ignored" vsizetype="Fixed">
-                          <horstretch>0</horstretch>
-                          <verstretch>0</verstretch>
-                      </sizepolicy>
-                  </property>
-                  <property name="minimumSize">
-                      <size>
-                          <width>150</width>
-                          <height>0</height>
-                      </size>
-                  </property>
-                  <property name="maximumSize">
-                      <size>
-                          <width>180</width>
-                          <height>16777215</height>
-                      </size>
-                  </property>
-              </widget>
-          </item>
+         <item>
+          <widget class="QLabel" name="label_counter">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="font">
+            <font>
+             <family>DejaVu Sans,Arial</family>
+             <pointsize>10</pointsize>
+             <weight>50</weight>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="text">
+            <string>0/0</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QTextEdit" name="current_class_display">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Ignored" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>150</width>
+             <height>60</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>180</width>
+             <height>80</height>
+            </size>
+           </property>
+           <property name="font">
+            <font>
+             <family>DejaVu Sans,Arial</family>
+             <pointsize>10</pointsize>
+            </font>
+           </property>
+           <property name="readOnly">
+            <bool>true</bool>
+           </property>
+           <property name="frameShape">
+            <enum>QFrame::StyledPanel</enum>
+           </property>
+           <property name="frameShadow">
+            <enum>QFrame::Sunken</enum>
+           </property>
+           <property name="verticalScrollBarPolicy">
+            <enum>Qt::ScrollBarAsNeeded</enum>
+           </property>
+           <property name="horizontalScrollBarPolicy">
+            <enum>Qt::ScrollBarAsNeeded</enum>
+           </property>
+           <property name="lineWrapMode">
+            <enum>QTextEdit::WidgetWidth</enum>
+           </property>
+           <property name="plainText">
+            <string>Loading...</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="button_next_label">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>150</width>
+             <height>30</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>180</width>
+             <height>30</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>Next Label »</string>
+           </property>
+           <property name="toolTip">
+            <string>Cycle to the next available label</string>
+           </property>
+          </widget>
+         </item>
          <item>
           <widget class="QLabel" name="current_bbox_title">
            <property name="sizePolicy">
@@ -1763,7 +1842,7 @@ if it does not have labels yet.</string>
   <tabstop>button_pick_bbox</tabstop>
   <tabstop>button_span_bbox</tabstop>
   <tabstop>button_save_label</tabstop>
-  <tabstop>current_class_dropdown</tabstop>
+  <tabstop>button_next_label</tabstop>
   <tabstop>edit_pos_x</tabstop>
   <tabstop>edit_pos_y</tabstop>
   <tabstop>edit_pos_z</tabstop>
