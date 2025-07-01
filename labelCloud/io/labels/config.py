@@ -32,17 +32,26 @@ class ClassConfig:
     name: str
     id: int
     color: Color3f
+    top_level_object: Optional[str] = None
 
     @classmethod
     def from_dict(cls, data: dict) -> "ClassConfig":
-        return cls(name=data["name"], id=data["id"], color=hex_to_rgb(data["color"]))
+        return cls(
+            name=data["name"], 
+            id=data["id"], 
+            color=hex_to_rgb(data["color"]),
+            top_level_object=data.get("top_level_object")
+        )
 
     def to_dict(self) -> dict:
-        return {
+        result = {
             "name": self.name,
             "id": self.id,
             "color": rgb_to_hex(self.color),
         }
+        if self.top_level_object is not None:
+            result["top_level_object"] = self.top_level_object
+        return result
 
 
 class LabelConfig(object, metaclass=SingletonABCMeta):

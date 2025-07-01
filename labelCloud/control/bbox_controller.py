@@ -13,6 +13,7 @@ import numpy as np
 
 from ..definitions import Mode
 from ..io.labels.config import LabelConfig
+from ..io.labels.config import LabelConfig
 from ..model.bbox import BBox
 from ..utils import oglhelper
 from .config_manager import config
@@ -63,6 +64,7 @@ class BoundingBoxController(object):
         self.bboxes: List[BBox] = []
         self.active_bbox_id = -1  # -1 means zero bboxes
         self.current_label_index = 0  # Track current label index for cycling
+        self.current_label_index = 0  # Track current label index for cycling
 
     # GETTERS
     def has_active_bbox(self) -> bool:
@@ -80,11 +82,11 @@ class BoundingBoxController(object):
 
     def get_current_selected_class(self) -> str:
         """Get the currently selected class name for new bboxes"""
-        available_classes = [cls.name for cls in LabelConfig().classes]
+        available_classes = LabelConfig().classes
         if available_classes and 0 <= self.current_label_index < len(available_classes):
-            return available_classes[self.current_label_index]
+            return available_classes[self.current_label_index].name
         elif available_classes:
-            return available_classes[0]
+            return available_classes[0].name
         else:
             return LabelConfig().get_default_class_name()
 
@@ -99,8 +101,13 @@ class BoundingBoxController(object):
             current_class = self.get_current_selected_class()
             bbox.set_classname(current_class)
             
+            # Set the bbox to use the currently selected class
+            current_class = self.get_current_selected_class()
+            bbox.set_classname(current_class)
+            
             self.bboxes.append(bbox)
             self.set_active_bbox(self.bboxes.index(bbox))
+            self.update_current_class_display()
             self.update_current_class_display()
             self.view.status_manager.update_status(
                 "Bounding Box added, it can now be corrected.", Mode.CORRECTION
@@ -137,6 +144,7 @@ class BoundingBoxController(object):
     def set_classname(self, new_class: str) -> None:
         self.get_active_bbox().set_classname(new_class)  # type: ignore
         self.update_label_list()
+        self.update_current_class_display()
         self.update_current_class_display()
 
     @has_active_bbox_decorator
@@ -379,18 +387,24 @@ class BoundingBoxController(object):
 
     def update_current_class_display(self) -> None:
         """Update the current class display with the active bbox's class"""
-        available_classes = [cls.name for cls in LabelConfig().classes]
+        available_classes = LabelConfig().classes
+        available_class_names = [cls.name for cls in available_classes]
         print(f"DEBUG: Available classes: {len(available_classes)}, current_label_index: {self.current_label_index}")
+        
+        current_class = ""
+        top_level_object = ""
         
         if self.has_active_bbox():
             current_class = self.get_active_bbox().classname  # type: ignore
             print(f"DEBUG: Active bbox class: '{current_class}'")
             # Find the index of current class in available classes
             try:
-                self.current_label_index = available_classes.index(current_class)
+                self.current_label_index = available_class_names.index(current_class)
             except ValueError:
                 self.current_label_index = 0
-                current_class = available_classes[0] if available_classes else ""
+                if available_classes:
+                    current_class = available_classes[0].name
+                    top_level_object = available_classes[0].top_level_object or ""
         else:
             print("DEBUG: No active bbox")
             # When no bbox is selected, show the current class from the cycling index
@@ -398,26 +412,36 @@ class BoundingBoxController(object):
                 # Ensure current_label_index is within bounds
                 if self.current_label_index >= len(available_classes):
                     self.current_label_index = 0
-                current_class = available_classes[self.current_label_index]
+                current_class = available_classes[self.current_label_index].name
+                top_level_object = available_classes[self.current_label_index].top_level_object or ""
             else:
                 current_class = ""
+                top_level_object = ""
                 self.current_label_index = 0
+        
+        # If we have an active bbox, get its top_level_object
+        if self.has_active_bbox() and available_classes:
+            # Find the class config for the current class
+            for cls in available_classes:
+                if cls.name == current_class:
+                    top_level_object = cls.top_level_object or ""
+                    break
         
         total_count = len(available_classes)
         current_index = self.current_label_index + 1 if total_count > 0 else 0
         
-        print(f"DEBUG: Final - class: '{current_class}', index: {current_index}, total: {total_count}")
-        self.view.update_label_display(current_class, current_index, total_count)
+        print(f"DEBUG: Final - class: '{current_class}', top_level_object: '{top_level_object}', index: {current_index}, total: {total_count}")
+        self.view.update_label_display(current_class, top_level_object, current_index, total_count)
 
     def next_label_class(self) -> None:
         """Cycle to the next available label class and apply it to active bbox"""
-        available_classes = [cls.name for cls in LabelConfig().classes]
+        available_classes = LabelConfig().classes
         if not available_classes:
             return
             
         # Cycle to next class
         self.current_label_index = (self.current_label_index + 1) % len(available_classes)
-        next_class = available_classes[self.current_label_index]
+        next_class = available_classes[self.current_label_index].name
         
         # If there's an active bbox, set the new class for it
         if self.has_active_bbox():

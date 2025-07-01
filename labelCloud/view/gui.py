@@ -109,6 +109,28 @@ STYLESHEET = """
         font-size: 10pt;
     }}
 
+    QTextEdit#top_level_object_display{{
+        border: 1px solid #ccc;
+        border-radius: 3px;
+        padding: 5px;
+        background-color: #e6f3ff;
+        font-family: DejaVu Sans, Arial;
+        font-size: 10pt;
+        font-weight: bold;
+        color: #0066cc;
+    }}
+
+    QPushButton#button_next_label{{
+        background-color: #0066cc;
+        color: white;
+        border: 1px solid #0052a3;
+        border-radius: 3px;
+        padding: 5px;
+        font-weight: bold;
+    }}
+
+    QPushButton#button_next_label:hover{{
+        background-color: #0052a3;
     QPushButton#button_next_label{{
         background-color: #0066cc;
         color: white;
@@ -122,6 +144,8 @@ STYLESHEET = """
         background-color: #0052a3;
     }}
 
+    QPushButton#button_next_label:pressed{{
+        background-color: #003d7a;
     QPushButton#button_next_label:pressed{{
         background-color: #003d7a;
     }}
@@ -211,6 +235,7 @@ class GUI(QtWidgets.QMainWindow):
         # RIGHT PANEL
         self.label_list: QtWidgets.QListWidget
         self.current_class_display: QtWidgets.QTextEdit
+        self.top_level_object_display: QtWidgets.QTextEdit
         self.label_counter: QtWidgets.QLabel
         self.button_next_label: QtWidgets.QPushButton
         self.button_deselect_label: QtWidgets.QPushButton
@@ -325,6 +350,8 @@ class GUI(QtWidgets.QMainWindow):
         )
 
         # LABELING CONTROL
+        self.button_next_label.clicked.connect(
+            self.controller.bbox_controller.next_label_class
         self.button_next_label.clicked.connect(
             self.controller.bbox_controller.next_label_class
         )
@@ -462,9 +489,11 @@ class GUI(QtWidgets.QMainWindow):
             self.controller.mouse_clicked(event)
             self.update_bbox_stats(self.controller.bbox_controller.get_active_bbox())
         elif (event.type() == QEvent.MouseButtonPress) and (
-            event_object != self.current_class_display
+            event_object != self.current_class_display and
+            event_object != self.top_level_object_display
         ):
             self.current_class_display.clearFocus()
+            self.top_level_object_display.clearFocus()
             self.update_bbox_stats(self.controller.bbox_controller.get_active_bbox())
         return False
 
@@ -540,18 +569,24 @@ class GUI(QtWidgets.QMainWindow):
         self.progressbar_pcds.setValue(value)
 
     def update_current_class_display(self) -> None:
+    def update_current_class_display(self) -> None:
         self.controller.pcd_manager.populate_class_dropdown()
 
-    def update_label_display(self, current_class: str, current_index: int, total_count: int) -> None:
-        """Update the current class display and counter"""
-        print(f"DEBUG: Updating label display - class: '{current_class}', index: {current_index}, total: {total_count}")
+    def update_label_display(self, current_class: str, top_level_object: str, current_index: int, total_count: int) -> None:
+        """Update the current class display, top level object, and counter"""
+        print(f"DEBUG: Updating label display - class: '{current_class}', top_level_object: '{top_level_object}', index: {current_index}, total: {total_count}")
         
         # Try both methods to ensure the text is set
         self.current_class_display.setPlainText(current_class)
         self.current_class_display.setText(current_class)
         
+        # Update top level object display
+        self.top_level_object_display.setPlainText(top_level_object)
+        self.top_level_object_display.setText(top_level_object)
+        
         # Also try to force a repaint
         self.current_class_display.update()
+        self.top_level_object_display.update()
         
         self.label_counter.setText(f"{current_index}/{total_count}")
 
