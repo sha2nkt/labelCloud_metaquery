@@ -170,6 +170,23 @@ class PointCloudManger(object):
 
     def get_labels_from_file(self) -> List[BBox]:
         bboxes = self.label_manager.import_labels(self.pcd_path)
+        
+        # Transform bboxes to centered coordinate space if point cloud centering is enabled
+        center_pointcloud = config.getboolean("POINTCLOUD", "center_pointcloud")
+        if center_pointcloud and self.pointcloud and bboxes:
+            original_mean = self.pointcloud.original_mean
+            
+            for bbox in bboxes:
+                # Transform center from original space to centered space
+                centered_center = (
+                    bbox.center[0] - original_mean[0],  # Subtract x offset
+                    bbox.center[1] - original_mean[1],  # Subtract y offset
+                    bbox.center[2]                      # Keep z unchanged
+                )
+                bbox.center = centered_center
+            
+            logging.info(f"Transformed {len(bboxes)} bounding boxes from original to centered coordinate space")
+        
         logging.info(green("Loaded %s bboxes!" % len(bboxes)))
         return bboxes
 
@@ -183,7 +200,34 @@ class PointCloudManger(object):
 
     def save_labels_into_file(self, bboxes: List[BBox]) -> None:
         if self.pcds:
-            self.label_manager.export_labels(self.pcd_path, bboxes)
+            # Transform bboxes back to original coordinate space if point cloud centering is enabled
+            center_pointcloud = config.getboolean("POINTCLOUD", "center_pointcloud")
+            if center_pointcloud and self.pointcloud:
+                # Create copies of bboxes and transform them back to original space
+                export_bboxes = []
+                original_mean = self.pointcloud.original_mean
+                
+                for bbox in bboxes:
+                    # Create a copy of the bbox
+                    export_bbox = BBox(*bbox.get_center(), *bbox.get_dimensions())
+                    export_bbox.set_rotations(*bbox.get_rotations())
+                    export_bbox.set_classname(bbox.get_classname())
+                    
+                    # Transform center back to original space
+                    original_center = (
+                        bbox.center[0] + original_mean[0],  # Add back x offset
+                        bbox.center[1] + original_mean[1],  # Add back y offset
+                        bbox.center[2]                      # Keep z unchanged
+                    )
+                    export_bbox.center = original_center
+                    export_bboxes.append(export_bbox)
+                
+                logging.info(f"Transformed {len(export_bboxes)} bounding boxes back to original coordinate space for export")
+                self.label_manager.export_labels(self.pcd_path, export_bboxes)
+            else:
+                # Export bboxes as-is if centering is not enabled
+                self.label_manager.export_labels(self.pcd_path, bboxes)
+            
             self.collected_object_classes.update(
                 {bbox.get_classname() for bbox in bboxes}
             )

@@ -31,6 +31,7 @@ def calculate_init_translation(
     - the point cloud extents
     - the far plane setting (caps zoom)
     - the initial camera height factor
+    - scene normalization for x and y mean coordinates
     """
     zoom = min(  # type: ignore
         np.linalg.norm(maxs - mins),
@@ -39,7 +40,15 @@ def calculate_init_translation(
     # Apply the camera height factor to adjust initial camera position
     camera_height_factor = config.getfloat("USER_INTERFACE", "initial_camera_height_factor")
     zoom *= camera_height_factor
-    return tuple(-np.add(center, [0, 0, zoom]))  # type: ignore
+    
+    # Check if point cloud centering is enabled
+    center_pointcloud = config.getboolean("POINTCLOUD", "center_pointcloud")
+    if center_pointcloud:
+        # Center x and y mean at viewer origin (0, 0), keep z positioning based on center
+        return tuple([-center[0], -center[1], -center[2] - zoom])  # type: ignore
+    else:
+        # Original behavior: offset entire center by zoom in z direction
+        return tuple(-np.add(center, [0, 0, zoom]))  # type: ignore
 
 
 def consecutive(data: npt.NDArray[np.int64], stepsize=1) -> List[npt.NDArray[np.int64]]:
@@ -60,6 +69,20 @@ class PointCloud(object):
     ) -> None:
         start_section(f"Loading {path.name}")
         self.path = path
+        
+        # Calculate mean and store it before any transformations
+        self.original_mean = np.mean(points, axis=0)
+        
+        # Apply point cloud centering if enabled
+        center_pointcloud = config.getboolean("POINTCLOUD", "center_pointcloud")
+        if center_pointcloud:
+            # Calculate mean coordinates for centering
+            point_mean = np.mean(points, axis=0)
+            # Translate points to center x and y mean at origin, keep z as is
+            points[:, 0] -= point_mean[0]  # Center x mean at origin
+            points[:, 1] -= point_mean[1]  # Center y mean at origin
+            logging.info(f"Point cloud centered: translated by [{-point_mean[0]:.3f}, {-point_mean[1]:.3f}, 0] to center mean x,y at origin")
+        
         self.points = points
         self.colors = colors if type(colors) == np.ndarray and len(colors) > 0 else None
 
@@ -70,9 +93,9 @@ class PointCloud(object):
             self.mix_ratio = config.getfloat("POINTCLOUD", "label_color_mix_ratio")
 
         self.vbo = None
-        self.center: Point3D = tuple(np.sum(points[:, i]) / len(points) for i in range(3))  # type: ignore
-        self.pcd_mins: npt.NDArray[np.float32] = np.amin(points, axis=0)
-        self.pcd_maxs: npt.NDArray[np.float32] = np.amax(points, axis=0)
+        self.center: Point3D = tuple(np.mean(self.points, axis=0))  # type: ignore
+        self.pcd_mins: npt.NDArray[np.float32] = np.amin(self.points, axis=0)
+        self.pcd_maxs: npt.NDArray[np.float32] = np.amax(self.points, axis=0)
         self.init_translation: Point3D = init_translation or calculate_init_translation(
             self.center, self.pcd_mins, self.pcd_maxs
         )
@@ -319,9 +342,18 @@ class PointCloud(object):
             self.trans_x, self.trans_y, self.trans_z
         )  # third, pcd translation
 
-        pcd_center = np.add(
-            self.pcd_mins, (np.subtract(self.pcd_maxs, self.pcd_mins) / 2)
-        )
+        # Check if point cloud centering is enabled
+        center_pointcloud = config.getboolean("POINTCLOUD", "center_pointcloud")
+        if center_pointcloud:
+            # For centered point clouds, x and y are already centered at origin
+            # Only use z-center for OpenGL transformations
+            pcd_center = np.array([0.0, 0.0, (self.pcd_mins[2] + self.pcd_maxs[2]) / 2])
+        else:
+            # Original behavior: use geometric center
+            pcd_center = np.add(
+                self.pcd_mins, (np.subtract(self.pcd_maxs, self.pcd_mins) / 2)
+            )
+        
         GL.glTranslate(*pcd_center)  # move point cloud back
 
         GL.glRotate(self.rot_x, 1.0, 0.0, 0.0)
@@ -404,6 +436,7 @@ class PointCloud(object):
             ]
         )
         print_column(["Point Cloud Center:", str(np.round(self.center, 2))])
+        print_column(["Original Mean:", str(np.round(self.original_mean, 2))])
         print_column(["Point Cloud Minimums:", str(np.round(self.pcd_mins, 2))])
         print_column(["Point Cloud Maximums:", str(np.round(self.pcd_maxs, 2))])
         print_column(
