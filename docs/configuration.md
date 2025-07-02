@@ -37,4 +37,5 @@ The following parameters can be changed:
 |        `near_plane`         | Min. distance of objects to be displayed by OpenGL                                              |         *0.1*          |
 |         `far_plane`         | Max. distance of objects to be displayed by OpenGL                                              |         *300*          |
 |     `keep_perspective`      | Save last perspective when leaving a point cloud                                                |        *False*         |
+| `initial_camera_height_factor` | Multiplier for initial camera height (0.5 = lower, 1.0 = default, 2.0 = higher)              |         *0.5*          |
 |       `show_2d_image`       | Show button to visualize related images in a separate window                                    |        *False*         |

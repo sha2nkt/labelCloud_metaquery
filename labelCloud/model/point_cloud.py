@@ -30,11 +30,15 @@ def calculate_init_translation(
     - the point cloud center
     - the point cloud extents
     - the far plane setting (caps zoom)
+    - the initial camera height factor
     """
     zoom = min(  # type: ignore
         np.linalg.norm(maxs - mins),
         config.getfloat("USER_INTERFACE", "far_plane") * 0.9,
     )
+    # Apply the camera height factor to adjust initial camera position
+    camera_height_factor = config.getfloat("USER_INTERFACE", "initial_camera_height_factor")
+    zoom *= camera_height_factor
     return tuple(-np.add(center, [0, 0, zoom]))  # type: ignore
 
 
