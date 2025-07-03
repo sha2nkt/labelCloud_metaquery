@@ -361,6 +361,52 @@ class PointCloudManger(object):
             bottom_up = -1
         return cosz, sinz, bottom_up
 
+    def apply_vertex_mask_coloring_from_labels(self) -> None:
+        """Load vertex mask from the first label and apply bright green coloring."""
+        try:
+            # Get the label folder from config
+            label_folder = config.getpath("FILE", "label_folder")
+            
+            # Construct the path for the PLY-specific labels JSON
+            labels_json_path = label_folder / f"{self.pcd_path.stem.replace('laser_scan', 'classes')}.json"
+            
+            if not labels_json_path.exists():
+                logging.debug(f"No labels JSON found at {labels_json_path}")
+                return
+                
+            # Load the labels JSON
+            import json
+            with open(labels_json_path, 'r') as f:
+                labels_data = json.load(f)
+            
+            # Get the first class/label if it exists
+            classes = labels_data.get('classes', [])
+            if not classes:
+                logging.debug("No classes found in labels JSON")
+                return
+                
+            first_class = classes[0]
+            vertex_mask = first_class.get('vertex_mask', [])
+            
+            if not vertex_mask:
+                logging.debug("No vertex_mask found in first class")
+                return
+                
+            class_name = first_class.get('name', 'Unknown')
+            logging.info(f"Applying vertex mask coloring for class: {class_name}")
+            logging.info(f"Vertex mask contains {len(vertex_mask)} indices")
+            
+            # Apply the coloring to the point cloud
+            if self.pointcloud is not None:
+                self.pointcloud.apply_vertex_mask_coloring(vertex_mask)
+                
+                # Refresh the viewer to show the updated colors
+                if hasattr(self, 'view') and hasattr(self.view, 'update'):
+                    self.view.update()
+                
+        except Exception as e:
+            logging.error(f"Failed to apply vertex mask coloring: {e}")
+
     def load_class_definitions_for_current_pcd(self) -> None:
         """Load class definitions specific to the current point cloud file."""
         
@@ -370,6 +416,10 @@ class PointCloudManger(object):
                 logging.info(f"Loaded PLY-specific class definitions for {self.pcd_path.name}")
             else:
                 logging.info(f"Using default class definitions for {self.pcd_path.name}")
+            
+            # Apply vertex mask coloring if a specific config was loaded and we have a point cloud
+            if pcd_specific_loaded and self.pointcloud is not None:
+                self.apply_vertex_mask_coloring_from_labels()
             
             # Update UI if view is available and properly initialized
             if hasattr(self, 'view') and hasattr(self.view, 'current_class_display'):

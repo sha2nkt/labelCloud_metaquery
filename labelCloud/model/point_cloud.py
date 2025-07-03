@@ -290,6 +290,47 @@ class PointCloud(object):
                 data=colors,
             )
 
+    def apply_vertex_mask_coloring(self, vertex_mask: List[int]) -> None:
+        """Color points at the specified vertex mask indices with bright green.
+        
+        Args:
+            vertex_mask: List of point indices to color with bright green
+        """
+        if not vertex_mask or self.colors is None:
+            return
+            
+        # Ensure we have the colors buffer
+        self.colors = cast(npt.NDArray[np.float32], self.colors)
+        
+        # Convert vertex mask to numpy array and filter valid indices
+        vertex_indices = np.array(vertex_mask, dtype=np.int32)
+        valid_indices = vertex_indices[vertex_indices < len(self.colors)]
+        
+        if len(valid_indices) == 0:
+            logging.warning("No valid vertex mask indices found for current point cloud")
+            return
+            
+        # Set bright green color (RGB: 0, 1, 0) for the vertex mask points
+        bright_green = np.array([0.0, 1.0, 0.0], dtype=np.float32)
+        self.colors[valid_indices] = bright_green
+        
+        # Update the color buffer in GPU if it exists
+        if hasattr(self, 'color_vbo') and self.color_vbo is not None:
+            GL.glBindBuffer(GL.GL_ARRAY_BUFFER, self.color_vbo)
+            
+            # Update colors in batches for better performance
+            stride = self.colors.shape[1] * SIZE_OF_FLOAT
+            for idx in valid_indices:
+                GL.glBufferSubData(
+                    GL.GL_ARRAY_BUFFER,
+                    offset=idx * stride,
+                    size=bright_green.nbytes,
+                    data=bright_green,
+                )
+            GL.glBindBuffer(GL.GL_ARRAY_BUFFER, 0)
+            
+        logging.info(f"Applied bright green coloring to {len(valid_indices)} points from vertex mask")
+
     # GETTERS AND SETTERS
     def get_no_of_points(self) -> int:
         return len(self.points)
