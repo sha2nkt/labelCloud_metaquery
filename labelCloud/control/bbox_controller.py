@@ -101,13 +101,8 @@ class BoundingBoxController(object):
             current_class = self.get_current_selected_class()
             bbox.set_classname(current_class)
             
-            # Set the bbox to use the currently selected class
-            current_class = self.get_current_selected_class()
-            bbox.set_classname(current_class)
-            
             self.bboxes.append(bbox)
             self.set_active_bbox(self.bboxes.index(bbox))
-            self.update_current_class_display()
             self.update_current_class_display()
             self.view.status_manager.update_status(
                 "Bounding Box added, it can now be corrected.", Mode.CORRECTION
@@ -439,21 +434,19 @@ class BoundingBoxController(object):
         self.view.update_label_display(current_class, top_level_object, current_index, total_count, acted_on_object)
 
     def next_label_class(self) -> None:
-        """Cycle to the next available label class and apply it to active bbox"""
+        """Cycle to the next available label class and deselect current bbox"""
         available_classes = LabelConfig().classes
         if not available_classes:
             return
             
-        # Cycle to next class
-        self.current_label_index = (self.current_label_index + 1) % len(available_classes)
-        next_class = available_classes[self.current_label_index].name
-        
-        # If there's an active bbox, set the new class for it
+        # Deselect any currently active bbox so it retains its current label
         if self.has_active_bbox():
-            self.get_active_bbox().set_classname(next_class)  # type: ignore
-            self.update_label_list()
+            self.deselect_bbox()
+            
+        # Cycle to next class for future bboxes
+        self.current_label_index = (self.current_label_index + 1) % len(available_classes)
         
-        # Always update display to show the current selected class
+        # Update display to show the current selected class
         self.update_current_class_display()
 
     def update_curr_class(self) -> None:
